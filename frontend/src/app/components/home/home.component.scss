@@ -1,0 +1,29 @@
+.home-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    height: calc(100vh - 64px); // Assuming toolbar height is 64px
+  }
+  
+  .welcome-card {
+    max-width: 500px;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  mat-card-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  mat-card-content {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  
+  mat-card-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }

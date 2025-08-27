@@ -1,0 +1,86 @@
+<div class="dashboard-container">
+    <h1>Portfolio Dashboard</h1>
+    
+    <mat-card class="summary-card">
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Total Value</div>
+            <div class="summary-value">{{totalValue | currency}}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Total Investment</div>
+            <div class="summary-value">{{totalInvestment | currency}}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Total Profit/Loss</div>
+            <div class="summary-value" [ngClass]="{'profit': totalProfit > 0, 'loss': totalProfit < 0}">
+              {{totalProfit | currency}}
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Return</div>
+            <div class="summary-value" [ngClass]="{'profit': profitPercentage > 0, 'loss': profitPercentage < 0}">
+              {{profitPercentage | number:'1.2-2'}}%
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  
+    <div class="actions-bar">
+      <button mat-raised-button color="primary" routerLink="/assets/add">Add Investment</button>
+    </div>
+  
+    <div *ngIf="loading" class="loading-spinner">
+      <mat-spinner></mat-spinner>
+    </div>
+  
+    <div *ngIf="error" class="error-message">
+      {{error}}
+    </div>
+  
+    <div *ngIf="!loading && !error && assets.length === 0" class="no-assets">
+      <p>You don't have any investments yet. Click "Add Investment" to get started.</p>
+    </div>
+  
+    <div *ngIf="!loading && !error && assets.length > 0" class="assets-grid">
+      <mat-card *ngFor="let asset of assets" class="asset-card">
+        <mat-card-header>
+          <mat-card-title>{{asset.name}} ({{asset.symbol}})</mat-card-title>
+          <mat-card-subtitle>{{asset.type | titlecase}}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="asset-details">
+            <div class="asset-detail">
+              <span class="detail-label">Quantity:</span>
+              <span class="detail-value">{{asset.quantity}}</span>
+            </div>
+            <div class="asset-detail">
+              <span class="detail-label">Purchase Price:</span>
+              <span class="detail-value">{{asset.purchase_price | currency}}</span>
+            </div>
+            <div class="asset-detail">
+              <span class="detail-label">Current Price:</span>
+              <span class="detail-value">{{asset.current_price | currency}}</span>
+            </div>
+            <div class="asset-detail">
+              <span class="detail-label">Current Value:</span>
+              <span class="detail-value">{{asset.currentValue | currency}}</span>
+            </div>
+            <div class="asset-detail">
+              <span class="detail-label">Profit/Loss:</span>
+              <span class="detail-value" [ngClass]="{'profit': asset.profit > 0, 'loss': asset.profit < 0}">
+                {{asset.profit | currency}} ({{asset.profitPercentage | number:'1.2-2'}}%)
+              </span>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button [routerLink]="['/assets', asset.id]">Details</button>
+          <button mat-button [routerLink]="['/assets/edit', asset.id]">Edit</button>
+          <button mat-button [routerLink]="['/transactions/add']" [queryParams]="{assetId: asset.id}">Add Transaction</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>

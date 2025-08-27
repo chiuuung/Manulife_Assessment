@@ -1,0 +1,76 @@
+<div class="form-container">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Add Transaction</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Asset</mat-label>
+            <mat-select formControlName="asset_id" [disabled]="assetsLoading || preSelectedAssetId !== null">
+              <mat-option *ngIf="assetsLoading">Loading assets...</mat-option>
+              <mat-option *ngFor="let asset of assets" [value]="asset.id">
+                {{asset.name}} ({{asset.symbol}})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="transactionForm.get('asset_id')?.hasError('required')">
+              Asset is required
+            </mat-error>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Transaction Type</mat-label>
+            <mat-select formControlName="type">
+              <mat-option value="buy">Buy</mat-option>
+              <mat-option value="sell">Sell</mat-option>
+            </mat-select>
+            <mat-error *ngIf="transactionForm.get('type')?.hasError('required')">
+              Transaction type is required
+            </mat-error>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Quantity</mat-label>
+            <input matInput type="number" formControlName="quantity" min="0.000001" step="0.000001">
+            <mat-error *ngIf="transactionForm.get('quantity')?.hasError('required')">
+              Quantity is required
+            </mat-error>
+            <mat-error *ngIf="transactionForm.get('quantity')?.hasError('min')">
+              Quantity must be greater than 0
+            </mat-error>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Price</mat-label>
+            <input matInput type="number" formControlName="price" min="0.01" step="0.01">
+            <span matPrefix>$&nbsp;</span>
+            <mat-error *ngIf="transactionForm.get('price')?.hasError('required')">
+              Price is required
+            </mat-error>
+            <mat-error *ngIf="transactionForm.get('price')?.hasError('min')">
+              Price must be at least $0.01
+            </mat-error>
+          </mat-form-field>
+  
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Notes (Optional)</mat-label>
+            <textarea matInput formControlName="notes" rows="3"></textarea>
+          </mat-form-field>
+  
+          <div class="form-actions">
+            <button mat-button type="button" [routerLink]="preSelectedAssetId ? ['/assets', preSelectedAssetId] : ['/transactions']">
+              Cancel
+            </button>
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit" 
+              [disabled]="transactionForm.invalid || loading">
+              <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+              <span *ngIf="!loading">Add Transaction</span>
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>

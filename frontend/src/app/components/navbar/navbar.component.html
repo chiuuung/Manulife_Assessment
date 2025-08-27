@@ -1,0 +1,27 @@
+<mat-toolbar color="primary">
+    <span routerLink="/dashboard" class="brand-name">Portfolio Manager</span>
+    <span class="spacer"></span>
+    
+    <ng-container *ngIf="authService.isAuthenticated()">
+      <button mat-button routerLink="/dashboard">Dashboard</button>
+      <button mat-button routerLink="/transactions">Transactions</button>
+      
+      <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="User menu">
+        <mat-icon>account_circle</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <span mat-menu-item disabled *ngIf="authService.getUser()">
+          {{ authService.getUser().username }}
+        </span>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>Logout</span>
+        </button>
+      </mat-menu>
+    </ng-container>
+    
+    <ng-container *ngIf="!authService.isAuthenticated()">
+      <button mat-button routerLink="/login">Login</button>
+      <button mat-button routerLink="/register">Register</button>
+    </ng-container>
+  </mat-toolbar>

@@ -6,7 +6,22 @@ if (!JWT_SECRET) {
 }
 
 const verifyToken = (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];
+  const header = req.header('Authorization');
+  if (!header) {
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
+  }
+  const token = header.split(' ')[1];
+
+  // Allow demo/admin session token for admin.html local login
+  if (token === 'admin-session-token') {
+    req.user = {
+      id: 1, // Make sure this matches your admin user in the DB
+      username: 'admin',
+      email: 'admin@gmail.com',
+      isAdmin: true
+    };
+    return next();
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });

@@ -35,7 +35,7 @@ export class AssetFormComponent implements OnInit {
       name: ['', Validators.required],
       quantity: ['', [Validators.required, Validators.min(0.000001)]],
       purchase_price: ['', [Validators.required, Validators.min(0.01)]],
-      purchase_date: [new Date(), Validators.required],
+      purchase_date: [this.getTodayDateString(), Validators.required],
       current_price: ['', [Validators.required, Validators.min(0.01)]]
     });
   }
@@ -51,13 +51,21 @@ export class AssetFormComponent implements OnInit {
     });
   }
 
+  // Helper to get today's date in YYYY-MM-DD format
+  getTodayDateString(): string {
+    const today = new Date();
+    return today.toISOString().slice(0, 10);
+  }
+
   loadAsset(id: number): void {
     this.loading = true;
     this.assetService.getAsset(id).subscribe({
       next: (asset) => {
         this.assetForm.patchValue({
           ...asset,
-          purchase_date: new Date(asset.purchase_date)
+          purchase_date: asset.purchase_date
+            ? new Date(asset.purchase_date).toISOString().slice(0, 10)
+            : this.getTodayDateString()
         });
         this.loading = false;
       },
@@ -69,13 +77,29 @@ export class AssetFormComponent implements OnInit {
     });
   }
 
+  // Helper to format date as YYYY-MM-DD for backend (MySQL)
+  formatDateForBackend(date: any): string {
+    if (!date) return '';
+    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) return date;
+    if (date instanceof Date) return date.toISOString().slice(0, 10);
+    // Try to parse string date
+    const dt = new Date(date);
+    if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+    return '';
+  }
+
   onSubmit(): void {
     if (this.assetForm.invalid) {
       return;
     }
 
     this.loading = true;
-    const formData = this.assetForm.value;
+    // Format purchase_date to "YYYY-MM-DD" for backend
+    const formValue = this.assetForm.value;
+    const formData = {
+      ...formValue,
+      purchase_date: this.formatDateForBackend(formValue.purchase_date)
+    };
 
     if (this.isEditMode && this.assetId) {
       this.assetService.updateAsset(this.assetId, formData).subscribe({
@@ -84,7 +108,9 @@ export class AssetFormComponent implements OnInit {
           this.router.navigate(['/dashboard']);
         },
         error: (err) => {
-          this.snackBar.open('Failed to update asset', 'Close', { duration: 3000 });
+          console.error('Backend error on update:', err);
+          const backendMsg = err?.error?.message || 'Failed to update asset';
+          this.snackBar.open(backendMsg, 'Close', { duration: 3000 });
           this.loading = false;
         }
       });
@@ -95,7 +121,9 @@ export class AssetFormComponent implements OnInit {
           this.router.navigate(['/dashboard']);
         },
         error: (err) => {
-          this.snackBar.open('Failed to add asset', 'Close', { duration: 3000 });
+          console.error('Backend error on create:', err);
+          const backendMsg = err?.error?.message || 'Failed to add asset';
+          this.snackBar.open(backendMsg, 'Close', { duration: 3000 });
           this.loading = false;
         }
       });

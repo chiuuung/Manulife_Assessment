@@ -179,3 +179,9 @@ Or, if running manually, stop each server and database as appropriate.
 This project and all materials are confidential and intended solely for use in the interview process. Do not share or distribute.
 
 ---
+
+## GitHub
+
+https://github.com/chiuuung/Manulife_Assessment
+
+---

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Portfolio Management Admin</title>
+  <style>
+    body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+    button { padding: 8px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+    button.danger { background: #f44336; }
+    button.secondary { background: #2196F3; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .tabs { display: flex; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; cursor: pointer; background: #f2f2f2; margin-right: 5px; }
+    .tab.active { background: #4CAF50; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .error { color: #f44336; margin: 10px 0; }
+    .success { color: #4CAF50; margin: 10px 0; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; }
+    .admin-badge { background: #ff9800; color: white; padding: 3px 6px; border-radius: 3px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Portfolio Management Admin</h1>
+  
+  <div class="login-container" id="loginContainer">
+    <div class="card">
+      <h2>Admin Login</h2>
+      <div id="loginError" class="error" style="display: none;"></div>
+      <form id="adminLoginForm">
+        <div style="margin-bottom: 10px;"><input type="email" id="login-email" value="admin@gmail.com" placeholder="Email" required></div>
+        <div style="margin-bottom: 10px;"><input type="password" id="login-password" value="admin123" placeholder="Password" required></div>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </div>
+  
+  <div class="admin-container" id="adminContainer" style="display: none;">
+    <div class="header-actions">
+      <h2>Administration Panel</h2>
+      <div>
+        <span id="currentUser"></span>
+        <button onclick="logout()" class="danger">Logout</button>
+      </div>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="users">Users</div>
+      <div class="tab" data-tab="assets">Assets</div>
+      <div class="tab" data-tab="transactions">Transactions</div>
+    </div>
+    
+    <div class="tab-content active" id="users">
+      <h2>User Management</h2>
+      <div id="usersError" class="error" style="display: none;"></div>
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    
+    <div class="tab-content" id="assets">
+      <h2>Asset Management</h2>
+      <table id="assetsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    
+    <div class="tab-content" id="transactions">
+      <h2>Transactions</h2>
+      <table id="transactionsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Asset</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Admin login handler with special future date handling
+    document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const errorDiv = document.getElementById('loginError');
+      errorDiv.style.display = 'none';
+      
+      // Direct login for admin credentials
+      if (email === 'admin@gmail.com' && password === 'admin123') {
+        // Create admin user object
+        const adminUser = {
+          id: 999,
+          username: 'admin',
+          email: 'admin@gmail.com',
+          isAdmin: true
+        };
+        
+        // Store in localStorage
+        localStorage.setItem('token', 'admin-session-token');
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        
+        // Show admin interface
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('adminContainer').style.display = 'block';
+        document.getElementById('currentUser').textContent = 'Logged in as: admin';
+        
+        loadUsers();
+        return;
+      }
+      
+      // For other credentials, attempt normal login
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.token) {
+          errorDiv.textContent = data.message || 'Login failed. Please check your credentials.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+        
+        // Check if user is admin
+        if (!data.user.isAdmin) {
+          errorDiv.textContent = 'Access denied. Admin privileges required.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+        
+        // Store user data and token
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Show admin interface
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('adminContainer').style.display = 'block';
+        document.getElementById('currentUser').textContent = `Logged in as: ${data.user.username}`;
+        
+        loadUsers();
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        errorDiv.textContent = 'Connection error. Please try again.';
+        errorDiv.style.display = 'block';
+      });
+    });
+    
+    // Logout function
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.getElementById('loginContainer').style.display = 'block';
+      document.getElementById('adminContainer').style.display = 'none';
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        
+        // Update active tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Show selected content
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        // Load data for the selected tab
+        if (tabId === 'users') loadUsers();
+        else if (tabId === 'assets') loadAssets();
+        else if (tabId === 'transactions') loadTransactions();
+      });
+    });
+    
+    // Helper for API calls with authorization
+    async function callAPI(endpoint, method = 'GET', body = null) {
+      const token = localStorage.getItem('token');
+      const headers = { 
+        'Content-Type': 'application/json',
+      };
+      
+      if (token && token !== 'admin-session-token') {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const options = {
+        method,
+        headers
+      };
+      
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+      
+      // For admin-session-token, use public endpoint for users
+      if (token === 'admin-session-token' && endpoint === '/api/auth/users') {
+        endpoint = '/api/auth/users/public';
+      }
+      
+      return fetch(endpoint, options);
+    }
+    
+    // Load users data
+    async function loadUsers() {
+      try {
+        // Always use the public endpoint
+        const response = await fetch('/api/auth/users/public');
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          document.getElementById('usersError').textContent = errorData.message || 'Failed to load users';
+          document.getElementById('usersError').style.display = 'block';
+          return;
+        }
+        
+        const users = await response.json();
+        
+        const tbody = document.querySelector('#usersTable tbody');
+        tbody.innerHTML = '';
+        
+        // Filter out admin users and only show regular users
+        const regularUsers = users.filter(user => !user.isAdmin);
+        
+        regularUsers.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td>User</td>
+            <td>${new Date(user.created_at).toLocaleString()}</td>
+            <td>
+              <button class="secondary" onclick="editUser(${user.id})">Edit</button>
+              <button class="danger" onclick="deleteUser(${user.id})">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('usersError').textContent = 'Connection error. Please try again.';
+        document.getElementById('usersError').style.display = 'block';
+      }
+    }
+    
+    // Placeholder functions for assets and transactions
+    function loadAssets() {
+      // Implement when you have the assets API endpoint
+      alert('Assets loading not implemented yet');
+    }
+    
+    function loadTransactions() {
+      // Implement when you have the transactions API endpoint
+      alert('Transactions loading not implemented yet');
+    }
+    
+    // Edit and delete functions (placeholders)
+    function editUser(id) {
+      alert(`Edit user ${id} - Implement this functionality`);
+    }
+    
+    function deleteUser(id) {
+      if (confirm(`Are you sure you want to delete user ${id}?`)) {
+        callAPI(`/api/auth/admin/users/${id}`, 'DELETE')
+          .then(response => {
+            if (response.ok) {
+              alert('User deleted successfully');
+              loadUsers();
+            } else {
+              alert('Failed to delete user');
+            }
+          })
+          .catch(err => {
+            console.error('Delete error:', err);
+            alert('Error deleting user');
+          });
+      }
+    }
+    
+    // Check if already logged in
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (token && user.isAdmin) {
+      document.getElementById('loginContainer').style.display = 'none';
+      document.getElementById('adminContainer').style.display = 'block';
+      document.getElementById('currentUser').textContent = `Logged in as: ${user.username}`;
+      loadUsers();
+    } else {
+      // Clear any invalid login state
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  </script>
+</body>
+</html>

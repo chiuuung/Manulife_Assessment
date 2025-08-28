@@ -8,6 +8,7 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    isAdmin BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -39,3 +40,7 @@ CREATE TABLE transactions (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (asset_id) REFERENCES assets(id)
 );
+
+-- This is a pre-hashed version of 'admin123' for demonstration only
+INSERT INTO users (username, email, password, isAdmin) 
+VALUES ('admin', 'admin@example.com', '$2b$10$mKfESHNzww65ba4xL1Fv2eFs9Qem0FmNt2d5ULRH8xr6i9.qrLWQe', true);

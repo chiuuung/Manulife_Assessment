@@ -6,6 +6,14 @@ const path = require('path');
 // Load environment variables
 dotenv.config();
 
+// If JWT_SECRET is missing, set a fallback
+if (!process.env.JWT_SECRET) {
+  console.warn('Warning: JWT_SECRET not found in .env file, using fallback value');
+  process.env.JWT_SECRET = '87654321';
+}
+
+console.log('Server starting with JWT_SECRET available:', !!process.env.JWT_SECRET);
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const assetRoutes = require('./routes/assets');
@@ -27,12 +35,12 @@ app.get('/', (req, res) => {
   res.send('Portfolio Management API is running');
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 // Serve admin page
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

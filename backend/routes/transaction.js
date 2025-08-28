@@ -85,17 +85,9 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     const asset = assets[0];
-
-    // Insert transaction
-    const [result] = await pool.query(
-      `INSERT INTO transactions 
-       (user_id, asset_id, type, quantity, price, notes) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, asset_id, type, quantity, price, notes || null]
-    );
-
-    // Update asset quantity based on transaction type
     let newQuantity = parseFloat(asset.quantity);
+
+    // Check quantity logic BEFORE inserting transaction!
     if (type === 'buy') {
       newQuantity += parseFloat(quantity);
     } else if (type === 'sell') {
@@ -104,6 +96,14 @@ router.post('/', verifyToken, async (req, res) => {
         return res.status(400).json({ message: 'Cannot sell more than owned quantity' });
       }
     }
+
+    // Only insert transaction if valid
+    const [result] = await pool.query(
+      `INSERT INTO transactions 
+       (user_id, asset_id, type, quantity, price, notes) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [req.user.id, asset_id, type, quantity, price, notes || null]
+    );
 
     // Update asset
     await pool.query(

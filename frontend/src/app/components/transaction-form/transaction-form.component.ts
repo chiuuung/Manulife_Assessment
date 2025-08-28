@@ -16,6 +16,9 @@ export class TransactionFormComponent implements OnInit {
   loading = false;
   assetsLoading = true;
   preSelectedAssetId: number | null = null;
+  selectedAsset: any = null;
+  availableQuantity: number = 0;
+  quantityError: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -36,7 +39,7 @@ export class TransactionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAssets();
-    
+
     // Check if asset_id is passed as a query parameter
     this.route.queryParams.subscribe(params => {
       if (params['assetId']) {
@@ -46,6 +49,19 @@ export class TransactionFormComponent implements OnInit {
         });
       }
     });
+
+    // React to changes in asset or type selection
+    this.transactionForm.get('asset_id')?.valueChanges.subscribe(id => {
+      this.selectedAsset = this.assets.find(a => a.id == id);
+      this.availableQuantity = this.selectedAsset ? Number(this.selectedAsset.quantity) : 0;
+      this.checkQuantity();
+    });
+    this.transactionForm.get('type')?.valueChanges.subscribe(type => {
+      this.checkQuantity();
+    });
+    this.transactionForm.get('quantity')?.valueChanges.subscribe(qty => {
+      this.checkQuantity();
+    });
   }
 
   loadAssets(): void {
@@ -54,13 +70,17 @@ export class TransactionFormComponent implements OnInit {
       next: (data) => {
         this.assets = data;
         this.assetsLoading = false;
-        
+
         // If we have a preselected asset and assets are loaded, set the form value
         if (this.preSelectedAssetId && this.assets.length > 0) {
           this.transactionForm.patchValue({
             asset_id: this.preSelectedAssetId
           });
         }
+        // Update selected asset and available quantity
+        const id = this.transactionForm.get('asset_id')?.value;
+        this.selectedAsset = this.assets.find(a => a.id == id);
+        this.availableQuantity = this.selectedAsset ? Number(this.selectedAsset.quantity) : 0;
       },
       error: (err) => {
         this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
@@ -69,14 +89,49 @@ export class TransactionFormComponent implements OnInit {
     });
   }
 
+  checkQuantity(): void {
+    const type = this.transactionForm.get('type')?.value;
+    const quantityCtrl = this.transactionForm.get('quantity');
+    const qty = Number(quantityCtrl?.value);
+  
+    if (type === 'sell') {
+      if (qty > this.availableQuantity) {
+        this.quantityError = `Cannot sell more than owned: ${this.availableQuantity}`;
+        const errors = quantityCtrl?.errors || {};
+        errors['exceed'] = true;
+        quantityCtrl?.setErrors(errors);
+      } else {
+        // Remove only 'exceed'
+        if (quantityCtrl?.errors) {
+          const errors = { ...quantityCtrl.errors };
+          delete errors['exceed'];
+          quantityCtrl.setErrors(Object.keys(errors).length ? errors : null);
+        }
+        this.quantityError = '';
+      }
+    } else {
+      // For buy, remove 'exceed' only
+      if (quantityCtrl?.errors) {
+        const errors = { ...quantityCtrl.errors };
+        delete errors['exceed'];
+        quantityCtrl.setErrors(Object.keys(errors).length ? errors : null);
+      }
+      this.quantityError = '';
+    }
+  }
+
   onSubmit(): void {
-    if (this.transactionForm.invalid) {
+    // Only block if quantityError is present for sell type
+    if (
+      this.transactionForm.invalid ||
+      (this.transactionForm.get('type')?.value === 'sell' && this.quantityError)
+    ) {
       return;
     }
 
     this.loading = true;
     const formData = this.transactionForm.value;
-    
+
     this.transactionService.createTransaction(formData).subscribe({
       next: (response) => {
         this.snackBar.open('Transaction created successfully', 'Close', { duration: 3000 });

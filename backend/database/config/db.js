@@ -11,15 +11,24 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Test database connection
-const testConnection = async () => {
+const MAX_RETRIES = 10;
+const RETRY_DELAY = 3000; // milliseconds
+
+// Test database connection with retry logic
+const testConnection = async (retries = 0) => {
   try {
     const connection = await pool.getConnection();
     console.log('✅ Database connected successfully!');
     connection.release();
   } catch (error) {
-    console.error('❌ Database connection error:', error);
-    // Don't exit the process as it would stop the server
+    console.error(`❌ Database connection error: ${error.code || error}`);
+    if (retries < MAX_RETRIES) {
+      const nextTry = retries + 1;
+      console.log(`🔄 Retrying database connection in ${RETRY_DELAY / 1000}s... (attempt ${nextTry}/${MAX_RETRIES})`);
+      setTimeout(() => testConnection(nextTry), RETRY_DELAY);
+    } else {
+      console.error('❌ Max database connection retries reached. Please check your DB service.');
+    }
   }
 };
 

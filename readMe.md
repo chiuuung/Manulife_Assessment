@@ -1,4 +1,3 @@
-````markdown name=README.md
 # MANULIFE-ASSESSMENT-NG-TSZ-CHIU
 
 A full-stack portfolio management web application built with Angular (frontend), Node.js/Express (backend), and MySQL (database).  
@@ -21,6 +20,9 @@ MANULIFE-ASSESSMENT-NG-TSZ-CHIU/
         ├── src/app/components/ # Angular components
         ├── src/app/services/   # Angular services
         └── ...                 # Other Angular files
+  ├── docker-compose.yml
+  ├── README.md
+  └── (all other project files)
 ```
 
 ---
@@ -43,82 +45,103 @@ MANULIFE-ASSESSMENT-NG-TSZ-CHIU/
 ## Prerequisites
 
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-- For manual run: MySQL 8+, Node.js 22+, Angular CLI 18+
+- For manual run (not required for Docker): MySQL 8+, Node.js 22+, Angular CLI 18+
 
 ---
 
-## How to Run the Project
+## How to Use This Project
 
-### Option 1: Docker Compose (Recommended)
+### 1. **Unpack the Submission**
 
-1. In the project root directory, run:
-   ```bash
-   docker-compose up --build
-   ```
+- Download and extract the zipped project folder `MANULIFE-ASSESSMENT-NG-TSZ-CHIU.zip` to your preferred directory.
+- The folder will include all source code, Dockerfiles, `docker-compose.yml`, and this README file.
+
+### 2. **Run with Docker Compose (Recommended)**
+
+1. **Open a terminal and navigate to the extracted project directory:**
+    ```bash
+    cd /path/to/MANULIFE-ASSESSMENT-NG-TSZ-CHIU
+    ```
+
+2. **Start the project (build and launch all services):**
+    ```bash
+    docker-compose up --build
+    ```
    - This launches MySQL, the backend API, and the Angular frontend.
    - The MySQL schema is loaded automatically.
 
-2. Access the application:
+3. **Access the application:**
    - **Frontend:** [http://localhost:4200](http://localhost:4200)
    - **Backend API/Admin:** [http://localhost:3000](http://localhost:3000)
+   - **Admin page:** [http://localhost:3000/admin](http://localhost:3000/admin)
+
+4. **Shut down the project:**
+    ```bash
+    docker-compose down
+    ```
+   - To erase all data (reset database), add `-v`:
+     ```bash
+     docker-compose down -v
+     ```
 
 ---
 
-### Option 2: Manual Run (Local MySQL, Node, Angular)
+### 3. **Manual Run (for Development/Debugging)**
 
-#### 1. MySQL Database Setup
+See instructions in the previous section (“Manual Run”) for setting up MySQL, backend, and frontend individually.
 
-- Start MySQL and open the shell:
-  ```bash
-  mysql -u root
-  ```
-- Create and use the database:
-  ```sql
-  CREATE DATABASE IF NOT EXISTS portfolio_management;
-  USE portfolio_management;
-  ```
-- Load schema:
-  ```sql
-  SOURCE /full/path/to/backend/database/database_schema.sql;
-  ```
-  *(replace with your actual path)*
+---
 
-#### 2. Backend Setup
+## Real-Time Price Update System
 
-- Navigate to backend and install dependencies:
-  ```bash
-  cd backend
-  npm install
-  ```
-- The `.env` file is already included in the backend folder with correct settings.
-- Start the backend:
-  ```bash
-  npm start
-  ```
+This application features a real-time price update system for all asset types.  
+**Live asset prices are automatically fetched from [Yahoo Finance](https://finance.yahoo.com/) every second via the backend.**
 
-#### 3. Frontend Setup
+- **Automatic Updates:**  
+  Portfolio and asset prices are refreshed every second without any manual action.  
+- **Manual Update:**  
+  If you wish, you can also press the "Price Update" button in the app to instantly fetch the latest prices.
 
-- Navigate to frontend and install dependencies:
-  ```bash
-  cd frontend
-  npm install
-  ```
-- Start the Angular app:
-  ```bash
-  ng serve
-  ```
-
-- The app will be available at [http://localhost:4200](http://localhost:4200)
+This ensures your portfolio values and performance metrics always reflect the most up-to-date market data.
 
 ---
 
 ## Demo/Test Users
 
-| Name   | Email           | Password   | Where to login                     |
-| ------ | --------------  | ---------- | -----------------------------------|
-| frank  | 1234@gmail.com  | frank123   | Frontend (http://localhost:4200)   |
-| james  | james@gmail.com | james123   | Frontend (http://localhost:4200)   |
-| admin  | admin@gmail.com | admin123   | Backend/Admin (http://localhost:3000) or via API |
+### Normal Users (login at [http://localhost:4200](http://localhost:4200))
+
+| Name   | Email           | Password   |
+| ------ | --------------  | ---------- |
+| frank  | 1234@gmail.com  | frank123   |
+| james  | james@gmail.com | james123   |
+
+**Example login case:**
+- user name: frank  
+  login: 1234@gmail.com  
+  password: frank123
+
+- user name: james  
+  login: james@gmail.com  
+  password: james123
+
+### Admin User (login at [http://localhost:3000/admin](http://localhost:3000/admin))
+
+| Name   | Email           | Password   |
+| ------ | --------------  | ---------- |
+| admin  | admin@gmail.com | admin123   |
+
+**Example admin login case:**
+- user name: admin  
+  login: admin@gmail.com  
+  password: admin123
+
+---
+
+## User Guide
+
+- You can **register** and **login** to start using your investment portfolios.
+- Normal users use the Angular frontend (`localhost:4200`) for managing portfolios and transactions.
+- The admin can login to the admin page (`localhost:3000/admin`) to manage the database and users.
 
 ---
 
@@ -126,6 +149,18 @@ MANULIFE-ASSESSMENT-NG-TSZ-CHIU/
 
 - The MySQL container or manual SQL step will load `backend/database/database_schema.sql` to create tables.
 - If required, you may provide a `seed.sql` for demo data.
+
+---
+
+## Git & Submission Notes
+
+- This project includes a `.git` folder to demonstrate commit history.
+- You are receiving a **complete project folder** (not just Dockerfiles) for full transparency and reproducibility.
+- To review code and commit history, you may use any Git tool:
+  ```bash
+  cd /path/to/MANULIFE-ASSESSMENT-NG-TSZ-CHIU
+  git log --oneline --all --graph
+  ```
 
 ---
 
@@ -138,4 +173,9 @@ docker-compose down
 Or, if running manually, stop each server and database as appropriate.
 
 ---
-````
+
+## Confidentiality
+
+This project and all materials are confidential and intended solely for use in the interview process. Do not share or distribute.
+
+---

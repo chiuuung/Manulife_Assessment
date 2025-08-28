@@ -1,44 +1,28 @@
-version: '3.8'
+version: "3.8"
 services:
   db:
     image: mysql:8.0
-    container_name: portfolio-db
-    restart: unless-stopped
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: example
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: portfolio_management
     ports:
       - "3306:3306"
     volumes:
-      - ./backend/database:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -pexample"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./backend/database/database_schema.sql:/docker-entrypoint-initdb.d/database_schema.sql
 
   backend:
     build: ./backend
-    container_name: portfolio-backend
-    restart: unless-stopped
-    environment:
-      DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: example
-      DB_NAME: portfolio_management
-      PORT: 3000
-      JWT_SECRET: 87654321
+    depends_on:
+      - db
     ports:
       - "3000:3000"
-    depends_on:
-      db:
-        condition: service_healthy
+    volumes:
+      - ./backend/.env:/usr/src/app/.env
 
   frontend:
     build: ./frontend
-    container_name: portfolio-frontend
-    restart: unless-stopped
-    ports:
-      - "4200:80"
     depends_on:
       - backend
+    ports:
+      - "4200:80"

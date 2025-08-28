@@ -1,14 +1,11 @@
-# Use official Node.js image for building
-FROM node:22 AS builder
-
+# Stage 1: Build Angular
+FROM node:22 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build -- --output-path=dist
+RUN npm run build --prod
 
-# Use Nginx to serve the static files
+# Stage 2: Serve with Nginx
 FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+COPY --from=build /app/dist/frontend/browser/ /usr/share/nginx/html

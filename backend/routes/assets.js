@@ -2,6 +2,36 @@ const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/auth');
 const pool = require('../database/config/db');
+const yahooFinance = require('yahoo-finance2').default; // <-- Yahoo Finance package
+
+// Fetch live price for an asset by type and symbol (now uses Yahoo Finance for everything)
+router.get('/price/:type/:symbol', verifyToken, async (req, res) => {
+  console.log('--- /price/:type/:symbol HIT ---', req.params);
+  const { type, symbol } = req.params;
+  try {
+    let price = null;
+    const querySymbol = symbol.trim();
+
+    try {
+      const quote = await yahooFinance.quote(querySymbol);
+      if (quote && quote.regularMarketPrice) {
+        price = quote.regularMarketPrice;
+      }
+    } catch (err) {
+      console.error('Yahoo Finance fetch error:', err);
+      return res.status(404).json({ message: 'Live price not found.' });
+    }
+
+    if (price === null) {
+      return res.status(404).json({ message: 'Live price not found.' });
+    }
+
+    res.json({ symbol, price });
+  } catch (error) {
+    console.error('Error in /price/:type/:symbol:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Get all assets for the current user, or ALL if admin
 router.get('/', verifyToken, async (req, res) => {

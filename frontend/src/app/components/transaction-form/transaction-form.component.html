@@ -48,8 +48,21 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Price</mat-label>
-          <input matInput type="number" formControlName="price" min="0.01" step="0.01">
+          <input matInput
+                 type="number"
+                 formControlName="price"
+                 min="0.01"
+                 step="0.01"
+                 [readonly]="priceLoading"
+                 tabindex="-1"
+                 style="background-color: #f6f6f6; cursor: not-allowed;">
           <span matPrefix>$&nbsp;</span>
+          <mat-hint *ngIf="priceLoading">
+            <mat-spinner diameter="18" strokeWidth="3"></mat-spinner> Fetching live price...
+          </mat-hint>
+          <mat-hint *ngIf="priceError" style="color:red;">
+            {{ priceError }}
+          </mat-hint>
           <mat-error *ngIf="transactionForm.get('price')?.hasError('required')">
             Price is required
           </mat-error>
@@ -67,13 +80,13 @@
           <button mat-button type="button" [routerLink]="preSelectedAssetId ? ['/assets', preSelectedAssetId] : ['/transactions']">
             Cancel
           </button>
-          <button 
-            mat-raised-button 
-            color="primary" 
-            type="submit" 
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
             [disabled]="
-              transactionForm.invalid || 
-              loading || 
+              transactionForm.invalid ||
+              loading ||
               (transactionForm.get('type')?.value === 'sell' && !!quantityError)
             ">
             <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>

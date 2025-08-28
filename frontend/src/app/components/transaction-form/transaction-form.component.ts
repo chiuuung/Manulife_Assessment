@@ -19,6 +19,8 @@ export class TransactionFormComponent implements OnInit {
   selectedAsset: any = null;
   availableQuantity: number = 0;
   quantityError: string = '';
+  priceLoading = false;
+  priceError: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -55,6 +57,7 @@ export class TransactionFormComponent implements OnInit {
       this.selectedAsset = this.assets.find(a => a.id == id);
       this.availableQuantity = this.selectedAsset ? Number(this.selectedAsset.quantity) : 0;
       this.checkQuantity();
+      this.fetchLatestPriceForSelectedAsset();
     });
     this.transactionForm.get('type')?.valueChanges.subscribe(type => {
       this.checkQuantity();
@@ -81,6 +84,7 @@ export class TransactionFormComponent implements OnInit {
         const id = this.transactionForm.get('asset_id')?.value;
         this.selectedAsset = this.assets.find(a => a.id == id);
         this.availableQuantity = this.selectedAsset ? Number(this.selectedAsset.quantity) : 0;
+        this.fetchLatestPriceForSelectedAsset();
       },
       error: (err) => {
         this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
@@ -93,7 +97,7 @@ export class TransactionFormComponent implements OnInit {
     const type = this.transactionForm.get('type')?.value;
     const quantityCtrl = this.transactionForm.get('quantity');
     const qty = Number(quantityCtrl?.value);
-  
+
     if (type === 'sell') {
       if (qty > this.availableQuantity) {
         this.quantityError = `Cannot sell more than owned: ${this.availableQuantity}`;
@@ -118,6 +122,40 @@ export class TransactionFormComponent implements OnInit {
       }
       this.quantityError = '';
     }
+  }
+
+  formatTypeForApi(type: string): string {
+    switch (type) {
+      case 'mutual_fund': return 'mutual fund';
+      case 'crypto': return 'cryptocurrency';
+      default: return type;
+    }
+  }
+
+  fetchLatestPriceForSelectedAsset(): void {
+    this.priceError = null;
+    this.priceLoading = false;
+    if (!this.selectedAsset) return;
+    const type = this.selectedAsset.type;
+    const symbol = this.selectedAsset.symbol;
+    const formattedType = this.formatTypeForApi(type);
+    const supported = ['stock', 'mutual fund', 'cryptocurrency'];
+    if (!supported.includes(formattedType) || !symbol) {
+      this.transactionForm.get('price')?.setValue('');
+      return;
+    }
+    this.priceLoading = true;
+    this.assetService.getLivePrice(formattedType, symbol).subscribe({
+      next: res => {
+        this.transactionForm.get('price')!.setValue(res.price || '');
+        this.priceLoading = false;
+      },
+      error: err => {
+        this.priceError = err?.error?.message || 'Failed to fetch live price';
+        this.priceLoading = false;
+        this.transactionForm.get('price')!.setValue('');
+      }
+    });
   }
 
   onSubmit(): void {

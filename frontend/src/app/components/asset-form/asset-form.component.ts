@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AssetService } from '../../services/assets.service';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-asset-form',
@@ -14,6 +15,8 @@ export class AssetFormComponent implements OnInit {
   isEditMode = false;
   assetId: number | null = null;
   loading = false;
+  priceLoading = false;
+  priceError: string | null = null;
   assetTypes = [
     { value: 'stock', label: 'Stock' },
     { value: 'bond', label: 'Bond' },
@@ -34,9 +37,8 @@ export class AssetFormComponent implements OnInit {
       symbol: ['', Validators.required],
       name: ['', Validators.required],
       quantity: ['', [Validators.required, Validators.min(0.000001)]],
-      purchase_price: ['', [Validators.required, Validators.min(0.01)]],
       purchase_date: [this.getTodayDateString(), Validators.required],
-      current_price: ['', [Validators.required, Validators.min(0.01)]]
+      current_price: [''] 
     });
   }
 
@@ -49,9 +51,17 @@ export class AssetFormComponent implements OnInit {
         this.loadAsset(this.assetId);
       }
     });
+
+    // Auto-fetch current price when type or symbol changes
+    this.assetForm.get('type')!.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe(() => this.tryFetchLivePrice());
+
+    this.assetForm.get('symbol')!.valueChanges
+      .pipe(debounceTime(400), distinctUntilChanged())
+      .subscribe(() => this.tryFetchLivePrice());
   }
 
-  // Helper to get today's date in YYYY-MM-DD format
   getTodayDateString(): string {
     const today = new Date();
     return today.toISOString().slice(0, 10);
@@ -77,12 +87,44 @@ export class AssetFormComponent implements OnInit {
     });
   }
 
-  // Helper to format date as YYYY-MM-DD for backend (MySQL)
+  formatTypeForApi(type: string): string {
+    switch (type) {
+      case 'mutual_fund': return 'mutual fund';
+      case 'crypto': return 'cryptocurrency';
+      default: return type;
+    }
+  }
+
+  tryFetchLivePrice(): void {
+    this.priceError = null;
+    const type = this.assetForm.get('type')!.value;
+    const symbol = this.assetForm.get('symbol')!.value;
+    if (!type || !symbol) {
+      return;
+    }
+    const formattedType = this.formatTypeForApi(type);
+    const supported = ['stock', 'mutual fund', 'cryptocurrency'];
+    if (!supported.includes(formattedType)) {
+      return;
+    }
+    this.priceLoading = true;
+    this.assetService.getLivePrice(formattedType, symbol).subscribe({
+      next: res => {
+        this.assetForm.get('current_price')!.setValue(res.price || '');
+        this.priceLoading = false;
+      },
+      error: err => {
+        this.priceError = err?.error?.message || 'Failed to fetch live price';
+        this.priceLoading = false;
+        this.assetForm.get('current_price')!.setValue('');
+      }
+    });
+  }
+
   formatDateForBackend(date: any): string {
     if (!date) return '';
     if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) return date;
     if (date instanceof Date) return date.toISOString().slice(0, 10);
-    // Try to parse string date
     const dt = new Date(date);
     if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
     return '';
@@ -94,11 +136,12 @@ export class AssetFormComponent implements OnInit {
     }
 
     this.loading = true;
-    // Format purchase_date to "YYYY-MM-DD" for backend
     const formValue = this.assetForm.value;
     const formData = {
       ...formValue,
-      purchase_date: this.formatDateForBackend(formValue.purchase_date)
+      purchase_date: this.formatDateForBackend(formValue.purchase_date),
+      purchase_price: formValue.current_price || formValue.purchase_price || 0,
+      current_price: formValue.current_price || 0
     };
 
     if (this.isEditMode && this.assetId) {

@@ -16,7 +16,9 @@ export class AssetDetailComponent implements OnInit {
   loading = true;
   transactionsLoading = true;
   error = '';
-  
+  priceLoading = false;
+  priceError: string | null = null;
+
   displayedColumns: string[] = ['date', 'type', 'quantity', 'price', 'total'];
 
   constructor(
@@ -40,11 +42,13 @@ export class AssetDetailComponent implements OnInit {
     });
   }
 
+  // Fetch the asset and immediately try updating the price
   loadAsset(id: number): void {
     this.loading = true;
     this.assetService.getAsset(id).subscribe({
       next: (data) => {
         this.asset = data;
+        this.fetchLivePrice(); // <--- Fetch live price on asset load
         this.calculateAssetMetrics();
         this.loading = false;
       },
@@ -52,6 +56,43 @@ export class AssetDetailComponent implements OnInit {
         this.error = 'Failed to load asset details';
         this.loading = false;
         this.snackBar.open(this.error, 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  // Fetch live price from backend (which uses Yahoo Finance API)
+  fetchLivePrice(): void {
+    if (!this.asset || !this.asset.type || !this.asset.symbol) return;
+
+    this.priceError = null;
+    this.priceLoading = true;
+
+    // Type mapping for API
+    const formatTypeForApi = (type: string): string => {
+      switch (type) {
+        case 'mutual_fund': return 'mutual fund';
+        case 'crypto': return 'cryptocurrency';
+        default: return type;
+      }
+    };
+    const formattedType = formatTypeForApi(this.asset.type);
+
+    // Only supported types
+    const supported = ['stock', 'mutual fund', 'cryptocurrency'];
+    if (!supported.includes(formattedType)) {
+      this.priceLoading = false;
+      return;
+    }
+
+    this.assetService.getLivePrice(formattedType, this.asset.symbol).subscribe({
+      next: res => {
+        this.asset.current_price = res.price || this.asset.current_price;
+        this.calculateAssetMetrics();
+        this.priceLoading = false;
+      },
+      error: err => {
+        this.priceError = err?.error?.message || 'Failed to fetch live price';
+        this.priceLoading = false;
       }
     });
   }
@@ -74,10 +115,10 @@ export class AssetDetailComponent implements OnInit {
     if (this.asset) {
       // Calculate current value
       this.asset.currentValue = this.asset.quantity * this.asset.current_price;
-      
+
       // Calculate investment value
       this.asset.investmentValue = this.asset.quantity * this.asset.purchase_price;
-      
+
       // Calculate profit/loss
       this.asset.profit = this.asset.currentValue - this.asset.investmentValue;
       this.asset.profitPercentage = ((this.asset.currentValue / this.asset.investmentValue) - 1) * 100;
@@ -92,7 +133,7 @@ export class AssetDetailComponent implements OnInit {
 
   deleteAsset(): void {
     if (!this.asset) return;
-    
+
     this.loading = true;
     this.assetService.deleteAsset(this.asset.id).subscribe({
       next: () => {

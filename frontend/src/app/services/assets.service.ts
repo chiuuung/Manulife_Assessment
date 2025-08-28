@@ -41,4 +41,13 @@ export class AssetService {
   deleteAsset(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
   }
+
+  // ----------- NEW FUNCTION -----------
+  getLivePrice(type: string, symbol: string): Observable<any> {
+    // type: 'stock', 'mutual fund', 'cryptocurrency'
+    return this.http.get<any>(
+      `${this.apiUrl}/price/${type}/${symbol}`,
+      { headers: this.getHeaders() }
+    );
+  }
 }

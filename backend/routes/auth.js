@@ -26,6 +26,52 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+// Register route
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Check if user/email already exists
+    const [existing] = await pool.query(
+      'SELECT id FROM users WHERE email = ? OR username = ?',
+      [email, username]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'Username or email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert into DB
+    const [result] = await pool.query(
+      'INSERT INTO users (username, email, password, isAdmin) VALUES (?, ?, ?, ?)',
+      [username, email, hashedPassword, false]
+    );
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: result.insertId, isAdmin: false },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: result.insertId,
+        username,
+        email,
+        isAdmin: false
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Server error during registration', error: error.message });
+  }
+});
+
 // Login route
 router.post('/login', async (req, res) => {
   try {

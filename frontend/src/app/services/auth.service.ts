@@ -21,6 +21,7 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/register`, { username, email, password })
       .pipe(
         tap((response: any) => {
+          console.log('[AuthService][register] Response from backend:', response);
           this.setToken(response.token);
           this.setUser(response.user);
         })
@@ -31,6 +32,7 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/login`, { email, password })
       .pipe(
         tap((response: any) => {
+          console.log('[AuthService][login] Response from backend:', response);
           this.setToken(response.token);
           this.setUser(response.user);
         })
@@ -57,10 +59,12 @@ export class AuthService {
   }
 
   private setToken(token: string): void {
+    console.log('[AuthService][setToken] Saving token to localStorage:', token);
     localStorage.setItem(this.tokenKey, token);
   }
 
   private setUser(user: any): void {
+    console.log('[AuthService][setUser] Saving user to localStorage:', user);
     localStorage.setItem(this.userKey, JSON.stringify(user));
   }
 }

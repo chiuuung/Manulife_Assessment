@@ -55,6 +55,7 @@ export class RegisterComponent {
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
+        console.log('Registration error:', err);
         this.error = err.error?.message || 'Registration failed. Please try again.';
         this.loading = false;
       }
